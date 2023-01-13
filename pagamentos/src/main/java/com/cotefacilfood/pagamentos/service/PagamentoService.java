@@ -2,6 +2,7 @@ package com.cotefacilfood.pagamentos.service;
 
 import com.cotefacilfood.pagamentos.dto.PagamentoDTO;
 import com.cotefacilfood.pagamentos.enums.Status;
+import com.cotefacilfood.pagamentos.httpClient.PedidoClient;
 import com.cotefacilfood.pagamentos.model.Pagamento;
 import com.cotefacilfood.pagamentos.repository.PagamentoRepository;
 import org.modelmapper.ModelMapper;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityNotFoundException;
+import java.util.Optional;
 
 @Service
 public class PagamentoService {
@@ -21,6 +23,9 @@ public class PagamentoService {
 
     @Autowired
     private ModelMapper modelMapper;
+
+    @Autowired
+    private PedidoClient pedidoClient;
 
     @Transactional(readOnly = true)
     public Page<PagamentoDTO> findAll(Pageable pageable) {
@@ -55,5 +60,28 @@ public class PagamentoService {
 
     public void delete(Long id) {
         repository.deleteById(id);
+    }
+
+    public void confirmarPagamento(Long id){
+        Optional<Pagamento> pagamento = repository.findById(id);
+
+        if (!pagamento.isPresent()) {
+            throw new EntityNotFoundException();
+        }
+
+        pagamento.get().setStatus(Status.CONFIRMADO);
+        repository.save(pagamento.get());
+        pedidoClient.atualizarPagamento(pagamento.get().getPedidoId());
+    }
+
+    public void alterarStatus(Long id) {
+        Optional<Pagamento> pagamento = repository.findById(id);
+
+        if (!pagamento.isPresent()) {
+            throw new EntityNotFoundException();
+        }
+
+        pagamento.get().setStatus(Status.CONFIRMADO_SEM_INTEGRACAO);
+        repository.save(pagamento.get());
     }
 }
